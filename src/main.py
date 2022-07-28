@@ -34,49 +34,81 @@ Please select a day and I will show what farmers' markets we have that day.
 
 
 def cancel(update, context):
-    try:
-        update.message.reply_text("Thank you for using the NycBot :)\n\
-To re-run the bot, please type: /start")
-    except:
-        pass
-    return ConversationHandler.END
-
-
-def fetch_data(update, context):
-    query = update.callback_query
-    OPENDATA_API_TOKEN = os.getenv('OPENDATA_API_TOKEN')
-    if query['data'] == 'closest_open':
-        return location(update, context)
-    else:
-        message = "The farmers' market opened on {} are: \n\n".format(query['data'])
-        client = Socrata("data.cityofnewyork.us", os.getenv(OPENDATA_API_TOKEN))
-        results = client.get("8vwk-6iz2")
-        for market in results:
-            if market['daysoperation'] == query['data']:
-                message += "** {} @ {}\n".format(market['streetaddress'], market['hoursoperations'])
-        query.edit_message_text(parse_mode=telegram.ParseMode.HTML, text=message)
-        return cancel(update, context)
-
-
-def location(update, context):
+    logging.info('Exiting the bot')
+    print(update)
     if update.edited_message:
         message = update.edited_message
     else:
         message = update.message
-    user_location = (message.location.latitude, message.location.longitude)
-    print(user_location)
+    message.reply_text("Thank you for using the NycBot :)\n\
+To re-run the bot, please type:\n/start")
+
+    return ConversationHandler.END
+
+
+def get_results():
+    logging.info('Getting farmers markets data')
+    OPENDATA_API_TOKEN = os.getenv('OPENDATA_API_TOKEN')
+    client = Socrata("data.cityofnewyork.us", os.getenv(OPENDATA_API_TOKEN))
+    results = client.get("8vwk-6iz2")
+    return results
+
+
+def fetch_data(update, context):
+    logging.info('Fetching user input')
+    query = update.callback_query
+    if query['data'] == 'closest_open':
+        return GET_LOCATION
+    else:
+        results = get_results()
+        message = "The farmers' markets open on {} are: \n\n".format(query['data'])
+        for market in results:
+            if market['daysoperation'] == query['data']:
+                message += "** {} @ {}\n\n".format(market['streetaddress'], market['hoursoperations'])
+        query.edit_message_text(parse_mode=telegram.ParseMode.HTML, text=message)
+    return cancel(update, context)
+
+
+def location(update, context):
+    logging.info('Getting user location')
+    if update.edited_message:
+        message = update.edited_message
+    else:
+        message = update.message
+    if message.location:
+        user_latitude = message.location.latitude
+        user_longitude = message.location.longitude
+        calculate_closest(update, context, user_latitude=user_latitude, user_longitude=user_longitude)
+    else:
+        logging.warning('User location is not shared with the bot')
+        update.edited_message.reply_text(text='Please share your location with the bot')
+
+
+def calculate_closest(update, context, user_latitude, user_longitude):
+    results = get_results()
+    logging.info("Calculating the closest market")
+    markets_dst = {}
+    for market in results:
+        market_latitude = float(market['latitude'])
+        market_longitude = float(market['longitude'])
+        dst_from_user = abs(abs(user_latitude) - abs(market_latitude)) + abs(abs(user_longitude) - abs(market_longitude))
+        markets_dst[market['streetaddress']] = dst_from_user
+
+    closest_market = min(markets_dst, key=markets_dst.get)
+    message_content = "The closest farmers' market is here: {} \n\n".format(closest_market)
+
+    update.edited_message.reply_text(parse_mode=telegram.ParseMode.HTML, text=message_content)
 
 
 def main():
     updater = Updater(TELEGRAM_API_TOKEN, use_context=True)
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler('start', show_days)],
-
         states={
             SHOW_DATA: [CommandHandler('start', show_days)],
-            GET_DATA: [CallbackQueryHandler(fetch_data)]
+            GET_DATA: [CallbackQueryHandler(fetch_data)],
+            GET_LOCATION: [CallbackQueryHandler(Filters.location, location)]
         },
-
         fallbacks=[CommandHandler('cancel', cancel)]
     )
 
