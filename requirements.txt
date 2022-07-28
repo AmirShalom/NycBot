@@ -1,3 +1,2 @@
-logging
 python-telegram-bot
 sodapy==2.1.1
