@@ -35,12 +35,9 @@ Please select a day and I will show what farmers' markets we have that day.
 
 def cancel(update, context):
     logging.info('Exiting the bot')
-    print(update)
-    if update.edited_message:
-        message = update.edited_message
-    else:
-        message = update.message
-    message.reply_text("Thank you for using the NycBot :)\n\
+    query = update.callback_query
+    query.answer()
+    query.edit_message_text("Thank you for using the NycBot :)\n\
 To re-run the bot, please type:\n/start")
 
     return ConversationHandler.END
@@ -57,16 +54,29 @@ def get_results():
 def fetch_data(update, context):
     logging.info('Fetching user input')
     query = update.callback_query
+    logging.info('User input is: {}'.format(query['data']))
     if query['data'] == 'closest_open':
-        return GET_LOCATION
+        if update.edited_message:
+            message = update.edited_message
+        else:
+            message = update.message
+        try:
+            user_location = message.location
+            return GET_LOCATION
+        except AttributeError:
+            logging.warning('User location is not shared with the bot')
+            query.edit_message_text(text='Cannot get the closest bot.\nPlease share your location with the bot and start the bot again '
+                                                  'using the /start option')
+            return ConversationHandler.END
     else:
         results = get_results()
         message = "The farmers' markets open on {} are: \n\n".format(query['data'])
         for market in results:
             if market['daysoperation'] == query['data']:
                 message += "** {} @ {}\n\n".format(market['streetaddress'], market['hoursoperations'])
+        message += "You are welcome to run the bot again using the /start option"
         query.edit_message_text(parse_mode=telegram.ParseMode.HTML, text=message)
-    return cancel(update, context)
+    return ConversationHandler.END
 
 
 def location(update, context):
@@ -75,13 +85,9 @@ def location(update, context):
         message = update.edited_message
     else:
         message = update.message
-    if message.location:
-        user_latitude = message.location.latitude
-        user_longitude = message.location.longitude
-        calculate_closest(update, context, user_latitude=user_latitude, user_longitude=user_longitude)
-    else:
-        logging.warning('User location is not shared with the bot')
-        update.edited_message.reply_text(text='Please share your location with the bot')
+    user_latitude = message.location.latitude
+    user_longitude = message.location.longitude
+    calculate_closest(update, context, user_latitude=user_latitude, user_longitude=user_longitude)
 
 
 def calculate_closest(update, context, user_latitude, user_longitude):
