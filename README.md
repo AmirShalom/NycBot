@@ -4,4 +4,4 @@ In the first version you can get the closest farmers' market and to get details 
 
 In the roadmap:
 - Finding the nearest free Wifi in NYC
-- Finding the nearest public bathroom 
+- Finding the nearest public bathroom in NYC
