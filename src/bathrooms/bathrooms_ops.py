@@ -4,6 +4,8 @@ import requests
 from sodapy import Socrata
 import telegram
 import urllib
+from telegram.ext import (Updater, CommandHandler, MessageHandler, Filters,
+                          ConversationHandler, CallbackQueryHandler)
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO)
@@ -41,4 +43,6 @@ def calculate_closest(update, context, user_latitude, user_longitude):
     closest_bathroom = min(bathrooms_dst, key=bathrooms_dst.get)
     message_content = "The closest public bathroom is here: {} \n\n".format(closest_bathroom)
 
+    message_content += "Thank you for using the NYC bot.\nYou are welcome to run the NYC bot again using the /start option"
     update.edited_message.reply_text(parse_mode=telegram.ParseMode.HTML, text=message_content)
+    return ConversationHandler.END

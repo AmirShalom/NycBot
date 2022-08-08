@@ -27,7 +27,7 @@ def start_bot(update, context):
 Please select the service you would like to get today: \n\n\
 \U0001F33D Farmers Markets bot - Getting the farmers markets in NYC by day or the closest \n\n\
 \U0001F4F6 Wifi bot - Getting the 5 closest free Wifi spots to your location \n\n\
-\U0001F6BE Public Bathroom Bot - Getting the 5 closet public bathrooms to your location'
+\U0001F6BD Public Bathroom Bot - Getting the 5 closet public bathrooms to your location'
 
     menu = [
         [InlineKeyboardButton('Farmers Markets Bot', callback_data='markets')],
@@ -49,7 +49,7 @@ def master_bot(update, context):
         global bot_name
 
         if query['data'] == 'markets':
-            bot_name = 'markets_bot'
+            # bot_name = 'markets_bot'
             markets_ops.show_days(update, context)
             return GET_MARKETS_DATA
         if query['data'] == 'wifi':
@@ -77,7 +77,6 @@ def location(update, context):
                 markets_ops.calculate_closest(update, context, user_latitude=user_latitude, user_longitude=user_longitude)
             elif bot_name == 'bathroom_bot':
                 bathrooms_ops.calculate_closest(update, context, user_latitude=user_latitude, user_longitude=user_longitude)
-            return cancel(update, context)
         except AttributeError:
             logging.warning('User location is not shared with the bot')
             query = update.callback_query

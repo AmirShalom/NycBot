@@ -46,7 +46,8 @@ def fetch_data(update, context):
         query = update.callback_query
         logging.info('User input is: {}'.format(query['data']))
         if query['data'] == 'closest':
-            return
+            bot_name = 'markets_bot'
+            return bot_name
         else:
             results = get_results()
             message = "The farmers' markets open on {} are: \n\n".format(query['data'])

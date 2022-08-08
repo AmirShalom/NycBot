@@ -3,6 +3,8 @@ import logging
 import os
 from sodapy import Socrata
 import telegram
+from telegram.ext import (Updater, CommandHandler, MessageHandler, Filters,
+                          ConversationHandler, CallbackQueryHandler)
 
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -32,7 +34,11 @@ def calculate_closest(update, context, user_latitude, user_longitude):
         dst_from_user = abs(abs(user_latitude) - abs(wifi_latitude)) + abs(abs(user_longitude) - abs(wifi_longitude))
         wifi_dst[wifi['location']] = dst_from_user
 
-    closest_wifi = min(wifi_dst, key=wifi_dst.get)
-    message_content = "The closest free wifi is here: {} \n\n".format(closest_wifi)
+    sorted_wifi_dst = {k: v for k, v in sorted(wifi_dst.items(), key=lambda item: item[1])}
+    message_content = "The closest free wifi spots are here: \n\n"
+    for i in range(0, 5):
+        message_content += "\U0001F4F6 {} \n\n".format(list(sorted_wifi_dst.keys())[i])
 
+    message_content += "Thank you for using the NYC bot.\nYou are welcome to run the NYC bot again using the /start option"
     update.edited_message.reply_text(parse_mode=telegram.ParseMode.HTML, text=message_content)
+    return ConversationHandler.END
