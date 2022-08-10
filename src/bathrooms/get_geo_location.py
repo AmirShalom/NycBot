@@ -27,7 +27,7 @@ def get_geo_location(bath_data, work_dir):
             response = requests.get(url)
             resp_json_payload = response.json()
             if resp_json_payload['results']:
-                with open(work_dir+'/'+'bath_geo_location.json', 'r+') as file:
+                with open(work_dir+'/src/bathrooms/bath_geo_location.json', 'r+') as file:
                     file_data = json.load(file)
                     file_data['data'].append(resp_json_payload['results'][0])
                     file.seek(0)
