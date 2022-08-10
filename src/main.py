@@ -9,10 +9,6 @@ from bathrooms import bathrooms_ops
 from markets import markets_ops
 from wifi import wifi_ops
 
-sys.path.append("/home/shalom/openData/bot/markets")
-sys.path.append("/opt/NycBot/src/wifi")
-sys.path.append("/opt/NycBot/src/bathrooms")
-
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO)
