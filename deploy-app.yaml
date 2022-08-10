@@ -43,5 +43,5 @@
     command: "{{ WORK_DIR }}/venv/bin/python {{ WORK_DIR }}/src/bathrooms/get_geo_location.py --work-dir={{ WORK_DIR }}"
 
   - name: Running the bot
-    command: "python {{ WORK_DIR }}/main.py"
+    command: "python {{ WORK_DIR }}/src/main.py"
 
