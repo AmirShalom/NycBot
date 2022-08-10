@@ -25,7 +25,6 @@ def main():
         while counter < len(bath_data):
             if counter > 498:
                 time.sleep(2) # https://developers.google.com/maps/faq#usage-limits - 500 qps limit
-        # for record in bath_data:
             if 'location' in bath_data[counter]:
                 url = 'https://maps.googleapis.com/maps/api/geocode/json?address=' + \
                       urllib.parse.quote(bath_data[counter]['location']) + \
