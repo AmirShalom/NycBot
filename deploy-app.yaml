@@ -1,0 +1,47 @@
+---
+- name: Deploy application
+  hosts: prod
+  remote_user: shalom
+  gather_facts: false
+  become: true
+  vars:
+    os_environment:
+      - key: OPENDATA_API_TOKEN
+        value: "{{ OPENDATA_API_TOKEN }}"
+      - key: TELEGRAM_API_TOKEN
+        value: "{{ TELEGRAM_API_TOKEN }}"
+      - key: MAPS_API_TOKEN
+        value: "{{ MAPS_API_TOKEN }}"
+      - key: WORK_DIR
+        value: "{{WORK_DIR}}" 
+
+  tasks:
+  - name: Git pull latest version
+    git:
+      repo: https://github.com/AmirShalom/NycBot.git
+      dest: "{{ WORK_DIR }}"
+
+  - name: Adding environment variables
+    ansible.builtin.lineinfile:
+      dest: "/etc/environment"
+      state: present
+      regexp: "^{{ item.key }}="
+      line: "{{ item.key }}={{ item.value }}"
+    with_items: "{{ os_environment }}"
+
+  - name: Creating venv for Python
+    pip:
+     virtualenv: "{{ WORK_DIR }}/venv"
+     requirements: "{{ WORK_DIR }}/src/requirements.txt"
+
+  - name: Activating the venv
+    shell: "source {{ WORK_DIR }}/venv/bin/activate"
+    args:
+      executable: /bin/bash
+
+  - name: Creating the bathrooms json file
+    command: "{{ WORK_DIR }}/venv/bin/python {{ WORK_DIR }}/src/bathrooms/get_geo_location.py --work-dir={{ WORK_DIR }}"
+
+  - name: Running the bot
+    command: "python {{ WORK_DIR }}/main.py"
+
