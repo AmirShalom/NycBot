@@ -1,9 +1,8 @@
+import json
 import logging
 import os
-import requests
 from sodapy import Socrata
 import telegram
-import urllib
 from telegram.ext import (Updater, CommandHandler, MessageHandler, Filters,
                           ConversationHandler, CallbackQueryHandler)
 
@@ -15,6 +14,7 @@ def fetch_data(update, context):
     logging.info('Fetching user input')
     return get_results()
 
+
 def get_results():
     logging.info('Getting Bathrooms data')
     OPENDATA_API_TOKEN = os.getenv('OPENDATA_API_TOKEN')
@@ -25,24 +25,25 @@ def get_results():
 
 def calculate_closest(update, context, user_latitude, user_longitude):
     logging.info("Calculating the closest Bathroom")
-    GOOGLE_MAPS_KEY = os.getenv('MAPS_API_TOKEN')
     bathrooms_dst = {}
-    results = get_results()
-    for bathroom in results:
-        if 'location' in bathroom:
-            url = 'https://maps.googleapis.com/maps/api/geocode/json?address=' + urllib.parse.quote(bathroom['location']) + '&key={}'.format(GOOGLE_MAPS_KEY)
-            response = requests.get(url)
-            resp_json_payload = response.json()
-            if resp_json_payload['results']:
-                # print(resp_json_payload['results'])
-                bathroom_latitude = resp_json_payload['results'][0]['geometry']['location']['lat']
-                bathroom_longitude = resp_json_payload['results'][0]['geometry']['location']['lng']
-                dst_from_user = abs(abs(user_latitude) - abs(bathroom_latitude)) + abs(abs(user_longitude) - abs(bathroom_longitude))
-                bathrooms_dst[bathroom['location']] = dst_from_user
 
-    closest_bathroom = min(bathrooms_dst, key=bathrooms_dst.get)
-    message_content = "The closest public bathroom is here: {} \n\n".format(closest_bathroom)
+    with open('./bathrooms/bath_geo_location.json') as data_file:
+        data = json.load(data_file)
+        for bath in data['data']:
+            bathroom_latitude = bath['geometry']['location']['lat']
+            bathroom_longitude = bath['geometry']['location']['lng']
+            dst_from_user = abs(abs(user_latitude) - abs(bathroom_latitude)) + abs(abs(user_longitude) - abs(bathroom_longitude))
+            bathrooms_dst[bath['address_components'][0]['long_name']] = dst_from_user
 
-    message_content += "Thank you for using the NYC bot.\nYou are welcome to run the NYC bot again using the /start option"
-    update.edited_message.reply_text(parse_mode=telegram.ParseMode.HTML, text=message_content)
+    sorted_bath_dst = {k: v for k, v in sorted(bathrooms_dst.items(), key=lambda item: item[1])}
+    message_content = "The closest public bathrooms are here: \n\n"
+    for i in range(0, 5):
+        for bath in data['data']:
+            if bath['address_components'][0]['long_name'] == list(sorted_bath_dst)[i]:
+                url = "https://www.google.com/maps/dir/?api=1&destination={}%2c{}".\
+                    format(bath['geometry']['location']['lat'], bath['geometry']['location']['lng'])
+                message_content += "\U0001F6BD [{}]({}) \n\n".format(list(sorted_bath_dst.keys())[i], url)
+    update.edited_message.reply_text(parse_mode=telegram.ParseMode.MARKDOWN, text=message_content, disable_web_page_preview=True)
+
     return ConversationHandler.END
+

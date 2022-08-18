@@ -46,8 +46,7 @@ def fetch_data(update, context):
         query = update.callback_query
         logging.info('User input is: {}'.format(query['data']))
         if query['data'] == 'closest':
-            bot_name = 'markets_bot'
-            return bot_name
+            return
         else:
             results = get_results()
             message = "The farmers' markets open on {} are: \n\n".format(query['data'])
@@ -70,9 +69,13 @@ def calculate_closest(update, context, user_latitude, user_longitude):
         markets_dst[market['streetaddress']] = dst_from_user
 
     closest_market = min(markets_dst, key=markets_dst.get)
-    message_content = "The closest farmers' market is here: {} \n\n".format(closest_market)
+    for market in results:
+        if market['streetaddress'] == closest_market:
+            url = "https://www.google.com/maps/dir/?api=1&destination={}%2c{}".format(market['latitude'], market['longitude'])
+            message_content = "The closest farmers' market is here:\n\n[{}]({})".format(closest_market, url)
+            update.edited_message.reply_text(parse_mode=telegram.ParseMode.MARKDOWN, text=message_content, disable_web_page_preview=True)
 
-    update.edited_message.reply_text(parse_mode=telegram.ParseMode.HTML, text=message_content)
+    return ConversationHandler.END
 
 
 def is_open(hoursoperations):

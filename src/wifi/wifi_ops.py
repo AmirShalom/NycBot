@@ -37,8 +37,11 @@ def calculate_closest(update, context, user_latitude, user_longitude):
     sorted_wifi_dst = {k: v for k, v in sorted(wifi_dst.items(), key=lambda item: item[1])}
     message_content = "The closest free wifi spots are here: \n\n"
     for i in range(0, 5):
-        message_content += "\U0001F4F6 {} \n\n".format(list(sorted_wifi_dst.keys())[i])
+        for network in results:
+            if network['location'] == list(sorted_wifi_dst.keys())[i]:
+                net_name = network['ntaname']
+                url = "https://www.google.com/maps/dir/?api=1&destination={}%2c{}".format(network['lat'], network['lon'])
+                message_content += "\U0001F4F6 Wifi Name:\n{} @ [{}]({}) \n\n".format(net_name, (list(sorted_wifi_dst.keys()))[i], url)
+    update.edited_message.reply_text(parse_mode=telegram.ParseMode.MARKDOWN, text=message_content, disable_web_page_preview=True)
 
-    message_content += "Thank you for using the NYC bot.\nYou are welcome to run the NYC bot again using the /start option"
-    update.edited_message.reply_text(parse_mode=telegram.ParseMode.HTML, text=message_content)
     return ConversationHandler.END

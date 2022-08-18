@@ -9,12 +9,16 @@ from bathrooms import bathrooms_ops
 from markets import markets_ops
 from wifi import wifi_ops
 
+sys.path.append("/home/shalom/openData/bot/markets")
+sys.path.append("/opt/NycBot/src/wifi")
+sys.path.append("/opt/NycBot/src/bathrooms")
+
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-START_BOT, MASTER_BOT, GET_BATHROOM_DATA, GET_MARKETS_DATA, GET_WIFI_DATA = range(5)
+MASTER_BOT, GET_BATHROOM_DATA, GET_MARKETS_DATA, GET_WIFI_DATA = range(4)
 
 
 def start_bot(update, context):
@@ -42,10 +46,11 @@ def master_bot(update, context):
         query = update.callback_query
         logging.info('User input is: {}'.format(query['data']))
         logging.info('Starting {} bot'.format(query['data']))
+
         global bot_name
 
         if query['data'] == 'markets':
-            # bot_name = 'markets_bot'
+            bot_name = 'market_bot'
             markets_ops.show_days(update, context)
             return GET_MARKETS_DATA
         if query['data'] == 'wifi':
@@ -62,31 +67,31 @@ def location(update, context):
         message = update.edited_message
     else:
         message = update.message
-    if 'bot_name' in globals():
-        logging.info("bot name is {} for location detector".format(bot_name))
-        try:
-            user_latitude = message.location.latitude
-            user_longitude = message.location.longitude
-            if bot_name == 'wifi_bot':
-                wifi_ops.calculate_closest(update, context, user_latitude=user_latitude, user_longitude=user_longitude)
-            elif bot_name == 'markets_bot':
-                markets_ops.calculate_closest(update, context, user_latitude=user_latitude, user_longitude=user_longitude)
-            elif bot_name == 'bathroom_bot':
-                bathrooms_ops.calculate_closest(update, context, user_latitude=user_latitude, user_longitude=user_longitude)
-        except AttributeError:
-            logging.warning('User location is not shared with the bot')
-            query = update.callback_query
-            query.edit_message_text(
-            text='Cannot get the closest market.\nPlease share your location with the bot and start the bot again '
-                'using the /start option')
-            return ConversationHandler.END
+    while 'bot_name' in globals():
+        bot_name = globals()['bot_name']
+        if bot_name:
+            logging.info("bot name is {} for location detector".format(bot_name))
+            try:
+                user_latitude = message.location.latitude
+                user_longitude = message.location.longitude
+                if bot_name == 'wifi_bot':
+                    wifi_ops.calculate_closest(update, context, user_latitude=user_latitude, user_longitude=user_longitude)
+                elif bot_name == 'market_bot':
+                    markets_ops.calculate_closest(update, context, user_latitude=user_latitude, user_longitude=user_longitude)
+                elif bot_name == 'bathroom_bot':
+                    bathrooms_ops.calculate_closest(update, context, user_latitude=user_latitude, user_longitude=user_longitude)
+            except AttributeError:
+                logging.warning('User location is not shared with the bot')
+                update.edited_message.reply_text(
+                text='Cannot get the closest {}.\nPlease share your location with the bot and start the bot again '
+                    'using the /start option'.format(bot_name.split('_')[0]))
+            del globals()['bot_name']
+            return cancel(update, context)
 
 
 def cancel(update, context):
     logging.info('Exiting the bot')
-    query = update.callback_query
-    query.answer()
-    query.edit_message_text("\nThank you for using the NycBot :)\n\
+    update.edited_message.reply_text("\nThank you for using the NycBot :)\n\
 To re-run the bot, please type:\n/start")
 
     return ConversationHandler.END
@@ -97,10 +102,14 @@ def main():
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler('start', start_bot)],
         states={
-            MASTER_BOT: [CallbackQueryHandler(master_bot)],
-            GET_MARKETS_DATA: [CallbackQueryHandler(markets_ops.fetch_data)],
-            GET_WIFI_DATA: [CallbackQueryHandler(wifi_ops.fetch_data)],
-            GET_BATHROOM_DATA: [CallbackQueryHandler(bathrooms_ops.fetch_data)]
+            MASTER_BOT: [CallbackQueryHandler(master_bot),
+                         CommandHandler('start', start_bot)],
+            GET_MARKETS_DATA: [CallbackQueryHandler(markets_ops.fetch_data),
+                               CommandHandler('start', start_bot)],
+            GET_WIFI_DATA: [CallbackQueryHandler(wifi_ops.fetch_data),
+                            CommandHandler('start', start_bot)],
+            GET_BATHROOM_DATA: [CallbackQueryHandler(bathrooms_ops.fetch_data),
+                                CommandHandler('start', start_bot)]
         },
         fallbacks=[CommandHandler('cancel', cancel)]
     )
