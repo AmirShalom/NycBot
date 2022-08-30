@@ -1,11 +1,11 @@
 # NycBot
-In this repository you can find the source code of the Telegram bot for New York city.
-In the current version the bot has these capabilities:
+In this repository you can find the source code for the Telegram bot for New York city. 
+In the current version, the bot has the following capabilities:
 
-- Finding the closest farmers' market to your current location
-- Listing the farmers' markets in the city by days 
-- Finding the 5 closest to you free Wifi in NYC
-- Finding the 5 closest to you public bathroom in NYC
+- Locating the closest farmers' market to your current location.
+- Listing the farmers' markets in the city by day.
+- Finding the 5 free closest Wifi spots in NYC.
+- Finding the 5 closest public bathrooms in NYC.
 
 You can run the bot using the Ansible playbook deploy-app.yaml with this command:
 ```
